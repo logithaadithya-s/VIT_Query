@@ -9,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.database import Base, SessionLocal, UPLOADS_DIR, engine
 from app.models import ResearchPaper
 from app.services.field_analyzer import classify_fields
-from app.services.paper_parser import analyze_paper_structure
 
 SAMPLE_PAPERS = [
     {
@@ -170,7 +169,6 @@ def seed():
         file_path = UPLOADS_DIR / filename
         file_path.write_text(sample["text"].strip(), encoding="utf-8")
 
-        structure = analyze_paper_structure(sample["text"])
         fields = classify_fields(sample["text"])
 
         paper = ResearchPaper(
@@ -185,7 +183,7 @@ def seed():
             primary_field=fields["primary_field"],
             secondary_fields=json.dumps(fields["secondary_fields"]),
             keywords=json.dumps(fields["keywords"]),
-            format_score=structure["format_score"],
+            format_score=None,
             word_count=len(sample["text"].split()),
         )
         db.add(paper)

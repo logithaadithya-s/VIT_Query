@@ -1,5 +1,4 @@
 import json
-import shutil
 import uuid
 from pathlib import Path
 
@@ -9,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.database import UPLOADS_DIR, get_db
 from app.models import ResearchPaper
 from app.services.field_analyzer import classify_fields
-from app.services.paper_parser import analyze_paper_structure
 from app.services.plagiarism import check_plagiarism
 from app.services.text_extractor import extract_text, guess_title
 
@@ -45,7 +43,6 @@ def _paper_to_dict(paper: ResearchPaper) -> dict:
         "primary_field": paper.primary_field,
         "secondary_fields": secondary_fields,
         "keywords": keywords,
-        "format_score": paper.format_score,
         "word_count": paper.word_count,
         "created_at": paper.created_at.isoformat() if paper.created_at else None,
     }
@@ -62,15 +59,7 @@ def get_paper(paper_id: int, db: Session = Depends(get_db)):
     paper = db.query(ResearchPaper).filter(ResearchPaper.id == paper_id).first()
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
-
-    data = _paper_to_dict(paper)
-    structure = analyze_paper_structure(paper.extracted_text)
-    data["structure"] = {
-        "format_score": structure["format_score"],
-        "found_sections": structure["found_section_names"],
-        "missing_sections": structure["missing_sections"],
-    }
-    return data
+    return _paper_to_dict(paper)
 
 
 @router.post("/upload")
@@ -95,8 +84,8 @@ async def upload_paper(
     stored_name = f"{uuid.uuid4().hex}{extension}"
     stored_path = UPLOADS_DIR / stored_name
 
-    with stored_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    content = await file.read()
+    stored_path.write_bytes(content)
 
     file_type = extension.lstrip(".")
     try:
@@ -106,7 +95,6 @@ async def upload_paper(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     resolved_title = title.strip() or guess_title(extracted_text, file.filename)
-    structure = analyze_paper_structure(extracted_text)
     field_info = classify_fields(extracted_text)
 
     existing = db.query(ResearchPaper).all()
@@ -143,7 +131,7 @@ async def upload_paper(
         primary_field=field_info["primary_field"],
         secondary_fields=json.dumps(field_info["secondary_fields"]),
         keywords=json.dumps(field_info["keywords"]),
-        format_score=structure["format_score"],
+        format_score=None,
         word_count=len(extracted_text.split()),
     )
 
@@ -152,11 +140,6 @@ async def upload_paper(
     db.refresh(paper)
 
     response = _paper_to_dict(paper)
-    response["structure"] = {
-        "format_score": structure["format_score"],
-        "found_sections": structure["found_section_names"],
-        "missing_sections": structure["missing_sections"],
-    }
     response["plagiarism_report"] = plagiarism_report
     return response
 
@@ -176,8 +159,8 @@ async def check_plagiarism_only(
     temp_name = f"temp_{uuid.uuid4().hex}{extension}"
     temp_path = UPLOADS_DIR / temp_name
 
-    with temp_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    content = await file.read()
+    temp_path.write_bytes(content)
 
     try:
         extracted_text = extract_text(temp_path, extension.lstrip("."))

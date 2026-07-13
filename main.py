@@ -1,14 +1,18 @@
-"""
-Research Paper Intelligence Platform
-Run: python main.py
-"""
+#!/usr/bin/env python3
+"""Start both the FastAPI backend and Next.js frontend."""
 
+import os
+import signal
 import socket
 import subprocess
 import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
 
 
-def find_free_port(start: int = 8501, end: int = 8510) -> int:
+def find_free_port(start: int = 8000, end: int = 8010) -> int:
     for port in range(start, end + 1):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -17,27 +21,48 @@ def find_free_port(start: int = 8501, end: int = 8510) -> int:
                 return port
             except OSError:
                 continue
-    raise RuntimeError(f"No free port found between {start} and {end}.")
+    raise RuntimeError("No free port found for backend.")
 
 
 def main():
-    port = find_free_port()
-    print(f"Starting app at http://localhost:{port}")
+    api_port = find_free_port(8000, 8010)
 
-    subprocess.run(
+    env = os.environ.copy()
+    env["NEXT_PUBLIC_API_URL"] = f"http://localhost:{api_port}"
+
+    print(f"\n  ResearchIQ Platform")
+    print(f"  ─────────────────────────────────")
+    print(f"  Backend API:  http://localhost:{api_port}")
+    print(f"  Frontend UI:  http://localhost:3000")
+    print(f"  ─────────────────────────────────\n")
+
+    backend = subprocess.Popen(
         [
-            sys.executable,
-            "-m",
-            "streamlit",
-            "run",
-            "streamlit_app.py",
-            "--server.port",
-            str(port),
-            "--server.headless",
-            "true",
+            sys.executable, "-m", "uvicorn",
+            "app.main:app",
+            "--host", "127.0.0.1",
+            "--port", str(api_port),
         ],
-        check=True,
+        cwd=ROOT,
     )
+
+    time.sleep(1.5)
+
+    frontend = subprocess.Popen(
+        ["npm", "run", "dev"],
+        cwd=ROOT / "frontend",
+        env=env,
+    )
+
+    def shutdown(*_):
+        backend.terminate()
+        frontend.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    frontend.wait()
 
 
 if __name__ == "__main__":

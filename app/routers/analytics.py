@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import ResearchPaper
 from app.services.field_analyzer import analyze_field_landscape
+from app.services.research_agent import generate_research_insights, get_agent_integration_suggestions
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
-@router.get("/overview")
-def analytics_overview(db: Session = Depends(get_db)):
+def _papers_payload(db: Session) -> list[dict]:
     papers = db.query(ResearchPaper).all()
     payload = []
 
@@ -36,19 +36,20 @@ def analytics_overview(db: Session = Depends(get_db)):
             }
         )
 
-    landscape = analyze_field_landscape(payload)
+    return payload
 
-    avg_format = 0.0
-    if papers:
-        avg_format = round(sum(p.format_score or 0 for p in papers) / len(papers), 2)
+
+@router.get("/overview")
+def analytics_overview(db: Session = Depends(get_db)):
+    payload = _papers_payload(db)
+    landscape = analyze_field_landscape(payload)
 
     return {
         **landscape,
         "summary": {
-            "total_papers": len(papers),
-            "unique_fields": len({p.primary_field for p in papers if p.primary_field}),
-            "average_format_score": avg_format,
-            "departments_represented": len({p.department for p in papers if p.department}),
+            "total_papers": len(payload),
+            "unique_fields": len({p["primary_field"] for p in payload if p.get("primary_field")}),
+            "departments_represented": len({p["department"] for p in payload if p.get("department")}),
         },
     }
 
@@ -66,3 +67,15 @@ def field_breakdown(db: Session = Depends(get_db)):
     return {
         "fields": [{"field": field, "count": count} for field, count in ranked],
     }
+
+
+@router.get("/agent-insights")
+async def agent_insights(db: Session = Depends(get_db)):
+    payload = _papers_payload(db)
+    insights = await generate_research_insights(payload)
+    return insights
+
+
+@router.get("/agent-suggestions")
+def agent_suggestions():
+    return {"suggestions": get_agent_integration_suggestions()}
