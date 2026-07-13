@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Paper Intelligence Platform</title>
+  <link rel="stylesheet" href="../static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Research Paper Intelligence Platform</h1>
+      <p>
+        Upload and store research papers, detect plagiarism, analyze research fields,
+        and discover under-explored areas with scope for new work.
+      </p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="upload">Upload Paper</button>
+      <button class="tab" data-tab="plagiarism">Plagiarism Check</button>
+      <button class="tab" data-tab="papers">All Papers</button>
+      <button class="tab" data-tab="analytics">Field Analytics</button>
+    </nav>
+
+    <section id="dashboard" class="panel active">
+      <div class="grid grid-3" id="summary-cards">
+        <div class="card"><div class="muted">Total Papers</div><div class="stat-value" id="stat-total">-</div></div>
+        <div class="card"><div class="muted">Research Fields</div><div class="stat-value" id="stat-fields">-</div></div>
+        <div class="card"><div class="muted">Avg Format Score</div><div class="stat-value" id="stat-format">-</div></div>
+      </div>
+      <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Most Researched Fields</h3>
+          <div id="top-fields" class="loading">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Research Opportunities</h3>
+          <div id="opportunities" class="loading">Loading...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="upload" class="panel">
+      <div class="card">
+        <h2>Upload Research Paper</h2>
+        <p class="muted">Supported formats: PDF, DOCX, TXT. Duplicate content (70%+ similarity) will be rejected.</p>
+        <form id="upload-form">
+          <label>
+            Title (optional — auto-detected if empty)
+            <input type="text" name="title" placeholder="Paper title" />
+          </label>
+          <label>
+            Author
+            <input type="text" name="author" placeholder="Faculty / student name" />
+          </label>
+          <label>
+            Department
+            <input type="text" name="department" placeholder="e.g. Computer Science" />
+          </label>
+          <label>
+            Publication Year
+            <input type="number" name="publication_year" min="1990" max="2030" placeholder="2025" />
+          </label>
+          <label>
+            Document
+            <input type="file" name="file" accept=".pdf,.docx,.txt" required />
+          </label>
+          <button type="submit">Upload & Analyze</button>
+        </form>
+        <div id="upload-result"></div>
+      </div>
+    </section>
+
+    <section id="plagiarism" class="panel">
+      <div class="card">
+        <h2>Plagiarism Check</h2>
+        <p class="muted">Check a document against all stored papers without saving it.</p>
+        <form id="plagiarism-form">
+          <label>
+            Document
+            <input type="file" name="file" accept=".pdf,.docx,.txt" required />
+          </label>
+          <button type="submit">Check Similarity</button>
+        </form>
+        <div id="plagiarism-result"></div>
+      </div>
+    </section>
+
+    <section id="papers" class="panel">
+      <div class="card">
+        <h2>Stored Papers</h2>
+        <div id="papers-list" class="paper-list loading">Loading papers...</div>
+      </div>
+    </section>
+
+    <section id="analytics" class="panel">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Field Distribution</h3>
+          <div id="field-distribution" class="loading">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Under-Explored Fields (Scope for New Work)</h3>
+          <div id="underexplored" class="loading">Loading...</div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Trending Keywords</h3>
+          <div id="keywords" class="loading">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Department Activity</h3>
+          <div id="departments" class="loading">Loading...</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
